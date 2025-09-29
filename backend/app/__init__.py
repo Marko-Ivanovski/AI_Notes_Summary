@@ -9,20 +9,18 @@ from flask_cors import CORS
 from redis import Redis
 
 db = SQLAlchemy()
-migrate = Migrate()
 redis_client = None
 
-
 def create_app():
-    load_dotenv()
-
     app = Flask(__name__)
+    load_dotenv()
 
     # CONFIG
     app.config['FLASK_ENV'] = os.getenv('FLASK_ENV', 'development')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    # file upload settings
+
+    # FILE UPLOAD CONFIG
     app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', '/app/uploads')
     allowed = os.getenv('ALLOWED_EXTENSIONS', '')
     app.config['ALLOWED_EXTENSIONS'] = {e.strip().lower() for e in allowed.split(',') if e}
@@ -30,24 +28,30 @@ def create_app():
 
     # EXTENSIONS
     db.init_app(app)
-    migrate.init_app(app, db)
+    Migrate(app, db)
     CORS(app)
 
-    # Redis client for caching
+    # REDIS CONFIG
     global redis_client
     redis_client = Redis.from_url(os.getenv('REDIS_URL', 'redis://redis:6379/0'), decode_responses=True)
 
+    # MODELS
+    from .models import Document, Chunk
+
     # BLUEPRINTS
     from .routes import main_bp
-    # from .ingestion import ingestion_bp
-    # from .indexer import indexer_bp
-    # from .retriever import retriever_bp
-    # from .generator import generator_bp
-
     app.register_blueprint(main_bp)
+
+    # from .ingestion import ingestion_bp
     # app.register_blueprint(ingestion_bp)
+
+    # from .indexer import indexer_bp
     # app.register_blueprint(indexer_bp)
+
+    # from .retriever import retriever_bp
     # app.register_blueprint(retriever_bp)
+
+    # from .generator import generator_bp
     # app.register_blueprint(generator_bp)
 
     return app

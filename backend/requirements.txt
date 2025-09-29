@@ -5,3 +5,4 @@ flask_migrate
 flask_cors
 psycopg2-binary
 redis
+PyMuPDF>=1.24.0
