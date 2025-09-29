@@ -1,0 +1,7 @@
+python-dotenv
+Flask>=2.3
+flask_sqlalchemy
+flask_migrate
+flask_cors
+psycopg2-binary
+redis
