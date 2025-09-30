@@ -10,8 +10,8 @@ services:
       - db
       - redis
     volumes:
-      - uploads:/app/uploads
-      - indexes:/app/indexes
+      - ./backend/uploads:/uploads
+      - ./backend/indexes:/indexes
 
   frontend:
     build:

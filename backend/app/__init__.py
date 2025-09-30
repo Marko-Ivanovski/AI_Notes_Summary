@@ -15,21 +15,28 @@ def create_app():
     app = Flask(__name__)
     load_dotenv()
 
+    # CORS
+    CORS(
+        app,
+        resources={r"/*": {"origins": "http://localhost:3000"}},
+        supports_credentials=True,
+        allow_headers="*",
+        methods=["GET","POST","PUT","PATCH","DELETE","OPTIONS"]
+    )
+
     # CONFIG
     app.config['FLASK_ENV'] = os.getenv('FLASK_ENV', 'development')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     # FILE UPLOAD CONFIG
     app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', '/app/uploads')
     allowed = os.getenv('ALLOWED_EXTENSIONS', '')
     app.config['ALLOWED_EXTENSIONS'] = {e.strip().lower() for e in allowed.split(',') if e}
-    app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', 0))
+    app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', 104857600))
 
     # EXTENSIONS
     db.init_app(app)
     Migrate(app, db)
-    CORS(app)
 
     # REDIS CONFIG
     global redis_client
