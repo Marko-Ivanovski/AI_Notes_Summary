@@ -29,14 +29,13 @@
 
 ## 2) Utils (File & Path Helpers)
 
-* ⬜ **`backend/app/utils.py`**
+* 🟩 **`backend/app/utils.py`**
 
   * `save_upload(file, doc_name) -> (doc_id, file_path)`
 
     * Generate `doc_id` (UUID or DB row ID)
     * Save to `/uploads/<doc_id>.pdf`
     * Insert `Document` row; return `(doc_id, path)`
-  * (Optional) helpers: ensure dirs, simple size/mimetype checks, path builders.
 
 **Done criteria:** Upload persists file + DB metadata reliably.
 
