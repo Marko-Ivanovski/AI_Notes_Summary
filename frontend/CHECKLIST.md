@@ -7,88 +7,74 @@
 
 ## 0) Project Setup & Config
 
-* 🟩 **TypeScript & Vite** – React + TS template initialized (`npm create vite@latest`).
+* 🟩 **TypeScript & Vite** – React + TS template initialized.
 * 🟩 **Dependencies** – Installed `axios`, `tailwindcss`, `postcss`, `autoprefixer`.
-* 🟩 **Tailwind** – Config files (`tailwind.config.js`, `postcss.config.js`) created; directives added to CSS; dev server running with utility classes.
-* 🟩 **Proxy** – `vite.config.ts` proxies `/upload` and `/query` to `http://localhost:5000`.
+* 🟩 **Tailwind** – Configured; directives added; styling works.
+* 🟩 **Proxy** – `vite.config.ts` proxies `/upload` and `/query` to backend.
 
-**Done criteria:** Dev server starts (`npm run dev`); Tailwind classes apply; API calls route via proxy.
+**Done criteria:** Dev server runs; API calls routed.
 
 ---
 
 ## 1) API Layer
 
-* 🟩 **`src/api.ts`**
+* 🟩 **`uploadPdf(file, docName?)`** – multipart POST to `/upload`, returns `doc_id` and `chunks` count.
+* 🟩 **`fetchChunks(docId)`** – GET `/chunks/:doc_id`, returns chunk previews.
 
-  * `uploadPdf(file: File, docName?: string)` – multipart POST to `/upload`.
-  * ⬜ `queryApi(docId: number, question: string)` – JSON POST to `/query`, returns answer + citations.
-
-**Done criteria:** `uploadPdf` returns correct JSON; `queryApi` stub returns expected shape.
+**Done criteria:** Upload and chunk listing work; query layer stub ready.
 
 ---
 
 ## 2) Layout Components
 
-* 🟩 **`Header.tsx`** – Simple header with app title.
-* 🟩 **`Footer.tsx`** – Minimal footer with copyright.
-* 🟩 **`App.tsx`** – Arranges `<Header />`, `<UploadForm />`, and `<Footer />` in flex layout.
+* 🟩 **`Header.tsx`**, **`Footer.tsx`**, **`App.tsx`** – Basic layout with header, main, footer.
 
-**Done criteria:** Consistent header/footer on all pages; mobile‑responsive container.
+**Done criteria:** Consistent UI shell.
 
 ---
 
 ## 3) Upload UI
 
-* 🟩 **`UploadForm.tsx`** –
+* 🟩 **`UploadForm.tsx`** – File/name inputs, upload button, displays `doc_id`, `chunkCount`, and chunk previews list.
+* 🟩 **State management** – `useState` for file, name, status, loading, docId, chunkCount, chunkList.
+* 🟩 **Error handling** – Shows errors from API.
 
-  * File input + optional name field.
-  * Submit button disabled until file selected.
-  * Shows status, `doc_id`, and `chunkCount` on success.
-* 🟩 **State management** – `useState` for file, name, status, loading, docId, chunkCount.
-* 🟩 **Error handling** – Displays API error messages.
-
-**Done criteria:** Uploads PDF; displays “Upload successful, X chunks created.”
+**Done criteria:** End‑to‑end PDF ingestion UI.
 
 ---
 
 ## 4) Query UI
 
-* ⬜ **`QueryForm.tsx`** –
+* ⬜ **`QueryForm.tsx`** – Input for question, submits to `queryApi`, displays answer and citations.
+* ⬜ **State management** – Manage `question`, `answer`, `citations`, `loading`.
+* ⬜ **Error handling** – Display validation/server errors.
 
-  * Text input for question; requires existing `doc_id`.
-  * Submit triggers `queryApi` and displays loading state.
-  * Shows answer text and list of citations (chunk IDs/pages).
-* ⬜ **State management** – Store `question`, `answer`, `citations`, `loading`.
-* ⬜ **Error handling** – Display validation and server errors.
-
-**Done criteria:** Given a question, displays LLM response and citation list.
+**Done criteria:** Q&A interface functional.
 
 ---
 
 ## 5) Styling & UX
 
-* 🟩 **Basic styling** via Tailwind utilities.
-* ⬜ **Form layout improvements** – Grid or spacing refinements.
-* ⬜ **Responsive design** – Ensure forms look good on mobile.
-* ⬜ **Loading indicators** – Spinners or skeletons for upload & query.
+* 🟩 **Tailwind utilities** – Basic styling applied.
+* ⬜ **Responsive layout** – Ensure mobile support.
+* ⬜ **Loading indicators** – Spinners for upload & query.
 
-**Done criteria:** Clean, user-friendly forms with clear feedback.
+**Done criteria:** Polished, responsive forms.
 
 ---
 
 ## 6) Future Enhancements
 
-* ⬜ **Navigation** – Switch between upload and query views.
-* ⬜ **History** – Save/upload logs of past `doc_id` and queries.
-* ⬜ **Authentication** – Protect endpoints if needed.
+* ⬜ **Navigation** – Multi-page views for upload vs query.
+* ⬜ **History/Docs list** – Show uploaded documents.
+* ⬜ **Authentication** – Protect backend endpoints.
 
-**Done criteria:** Extended features roadmap documented in README.
+**Done criteria:** Roadmap outlined.
 
 ---
 
 ## Definition of Done (Frontend)
 
-* Upload UI fully functional end‑to‑end (PDF → chunk response).
-* Query UI implemented and integrated with backend.
-* Responsive, styled forms with clear error/success states.
-* README updated with usage instructions and environment variables.
+* Upload UI + chunk preview complete.
+* Query UI to be implemented.
+* Responsive, styled, error‑aware forms.

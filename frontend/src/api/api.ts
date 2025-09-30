@@ -17,3 +17,9 @@ export function uploadPdf(file: File, docName?: string) {
     { headers: { "Content-Type": "multipart/form-data" } }
   );
 }
+
+export function fetchChunks(docId: number) {
+  return api.get<Array<{chunk_id: number; page: number; preview: string;}>>(
+    `/chunks/${docId}`
+  );
+}

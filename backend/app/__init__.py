@@ -49,9 +49,6 @@ def create_app():
     from .routes import api
     app.register_blueprint(api)
 
-    # from .ingestion import ingestion_bp
-    # app.register_blueprint(ingestion_bp)
-
     # from .indexer import indexer_bp
     # app.register_blueprint(indexer_bp)
 

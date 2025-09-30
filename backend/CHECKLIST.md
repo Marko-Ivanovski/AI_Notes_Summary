@@ -43,7 +43,7 @@
 
 ## 3) Ingestion & Chunking
 
-* ⬜ **`backend/app/ingestion.py`**
+* 🟩 **`backend/app/ingestion.py`**
 
   * `extract_and_chunk(doc_id, file_path) -> int`
 
