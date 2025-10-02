@@ -3,6 +3,7 @@
 from . import db
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from sqlalchemy import LargeBinary
 
 class Document(db.Model):
     __tablename__ = "documents"
@@ -10,6 +11,7 @@ class Document(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     filename = db.Column(db.String, nullable=False)
     uploaded_at = db.Column(db.DateTime, default=datetime.now)
+
     chunks = db.relationship("Chunk", back_populates="document", cascade="all, delete-orphan")
 
     def __repr__(self):
@@ -24,6 +26,8 @@ class Chunk(db.Model):
     page_number = db.Column(db.Integer, nullable=False)
     chunk_index = db.Column(db.Integer, nullable=False)
     text = db.Column(db.Text, nullable=False)
+    embedding = db.Column(db.LargeBinary, nullable=True)
+
     document = db.relationship("Document", back_populates="chunks")
 
     def __repr__(self):

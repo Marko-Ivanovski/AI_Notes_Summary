@@ -58,7 +58,7 @@
 
 ## 4) Embeddings
 
-* ⬜ **`backend/app/embedder.py`**
+* 🟩  **`backend/app/embedder.py`**
 
   * Model bootstrap (load once; e.g., sentence‑transformers)
   * `encode_all(doc_id) -> int`
@@ -74,7 +74,7 @@
 
 ## 5) Indexing (BM25 + FAISS)
 
-* ⬜ **`backend/app/indexer.py`**
+* 🟩  **`backend/app/indexer.py`**
 
   * `build_and_save(doc_id) -> None`
 
@@ -115,14 +115,6 @@
     * Return concise answer + list of cited `chunk_id`s
 
 **Done criteria:** Returns grounded, citation‑bearing answers.
-
----
-
-## Minimal Non‑Goals (for now)
-
-* No `/health` endpoint
-* No background jobs
-* No complex auth or rate limiting
 
 ---
 

@@ -3,6 +3,7 @@
 from flask import Blueprint, request, jsonify
 from .utils import save_upload, delete_document
 from .ingestion import extract_and_chunk
+from .indexer import build_indexes
 
 api = Blueprint("api", __name__)
 
@@ -26,6 +27,8 @@ def upload():
     doc_id, path = save_upload(file, name)
 
     count = extract_and_chunk(doc_id, path)
+    build_indexes(reindex_all=False)
+
     return jsonify({
         "doc_id": doc_id,
         "chunks": count,
@@ -88,4 +91,3 @@ def query():
         "used_k": 0,
         "context_count": 0
     }), 200
-

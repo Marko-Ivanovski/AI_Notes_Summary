@@ -6,3 +6,9 @@ flask_cors
 psycopg2-binary
 redis
 PyMuPDF>=1.24.0
+numpy>=1.25.0
+torch>=2.0.0
+transformers>=4.0.0
+redis>=4.5.0
+faiss-cpu>=1.7.4
+whoosh>=2.7.4
