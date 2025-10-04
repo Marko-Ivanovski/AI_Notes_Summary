@@ -1,68 +1,75 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
+@import "tailwindcss/preflight";
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+@tailwind utilities;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
+html, body, #root { height: 100%; }
+#root {
   display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  flex-direction: column;
+  background-color: #ecfdf5; /* tailwind emerald-50 */
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* Center the main content block that contains your upload card */
+#root > main,
+#root > div:has(.ring-emerald-100) {
+  flex: 1 1 auto;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 3rem 1.5rem !important;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* Enlarge + center the upload card (the white box with ring-emerald-100) */
+.ring-emerald-100 {
+  max-width: 1120px !important; /* ≈ max-w-7xl */
+  width: 100% !important;
+  margin: 0 auto !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.15) !important;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* Ensure two-column layout on desktop with generous gap */
+@media (min-width: 1024px) {
+  .ring-emerald-100 .grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2.5rem !important;
   }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+}
+
+/* Slightly scale paddings & text inside the card for a roomier feel */
+.ring-emerald-100 .p-10 { padding: 2.5rem !important; }
+.ring-emerald-100 h1 { font-size: 1.875rem !important; } /* text-3xl */
+.ring-emerald-100 .text-sm { font-size: 0.9rem; }
+.ring-emerald-100 .text-base { font-size: 1rem; }
+
+/* Dropzone hover feedback */
+.border-dashed.border-emerald-200 {
+  background: linear-gradient(0deg, rgba(16,185,129,0.05), rgba(16,185,129,0.05));
+  transition: border-color .2s, box-shadow .2s;
+}
+.border-dashed.border-emerald-200:hover {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 4px rgba(16,185,129,0.15);
+}
+
+/* Chunkier primary button */
+.bg-emerald-600 {
+  box-shadow: 0 6px 16px rgba(16,185,129,0.35);
+}
+.bg-emerald-600:hover {
+  box-shadow: 0 8px 20px rgba(16,185,129,0.45);
+}
+
+/* Nice thin scrollbar for the chunks list */
+.ring-emerald-100 .overflow-y-auto {
+  scrollbar-width: thin;
+}
+.ring-emerald-100 .overflow-y-auto::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.ring-emerald-100 .overflow-y-auto::-webkit-scrollbar-thumb {
+  background-color: rgba(16,185,129,.4);
+  border-radius: 9999px;
 }

@@ -90,7 +90,7 @@
 
 ## 6) Retrieval and Re‑rank
 
-* ⬜ **`backend/app/retriever.py`**
+* 🟩 **`backend/app/retriever.py`**
 
   * `search(doc_id, question, k) -> List[Dict]`
 
@@ -106,7 +106,7 @@
 
 ## 7) Answer Generation (LLM)
 
-* ⬜ **`backend/app/generator.py`**
+* 🟩  **`backend/app/generator.py`**
 
   * `answer(question, top_context) -> {answer: str, citations: List[str]}`
 

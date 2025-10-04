@@ -1,9 +1,12 @@
 # app/routes.py
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from .utils import save_upload, delete_document
 from .ingestion import extract_and_chunk
 from .indexer import build_indexes
+from .models import Chunk
+from .retriever import retrieve
+from .generator import generate_answer
 
 api = Blueprint("api", __name__)
 
@@ -77,17 +80,37 @@ def delete_doc(doc_id):
 
 @api.route("/query", methods=["POST"])
 def query():
-    """
-    Placeholder endpoint until retrieval/generation is wired.
-    """
-
     data = request.get_json(force=True)
-    if not data.get("doc_id") or not data.get("question"):
+    doc_id  = data.get("doc_id")
+    question = data.get("question")
+    if not doc_id or not question:
         return error("Both doc_id and question are required.")
 
+    all_chunks = (
+        Chunk.query
+             .filter_by(document_id=doc_id)
+             .all()
+    )
+    if not all_chunks:
+        return error(f"No document #{doc_id} found.", 404)
+
+    ce = current_app.cross_encoder
+    hits = retrieve(
+        question,
+        top_k_bm25=5,
+        top_k_faiss=5,
+        top_n=5,
+        cross_encoder=ce
+    )
+    hit_ids = [cid for cid, _ in hits]
+
+    top_chunks = [Chunk.query.get(cid) for cid in hit_ids]
+
+    answer_text, cited_chunk_ids = generate_answer(question, top_chunks)
+
     return jsonify({
-        "answer": "Under construction",
-        "citations": [],
-        "used_k": 0,
-        "context_count": 0
+        "answer":      answer_text,
+        "citations":   cited_chunk_ids,
+        "used_k":      len(hits),
+        "context_count": len(top_chunks)
     }), 200
