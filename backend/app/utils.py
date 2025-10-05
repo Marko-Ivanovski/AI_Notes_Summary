@@ -8,17 +8,10 @@ from .models import Document
 from . import db
 
 def save_upload(file, name):
-    """
-    Saves `file` under UPLOAD_FOLDER with a Document row.
-    Returns (doc_id, full_file_path).
-    """
-
-    # 1) record in DB
     doc = Document(filename=name)
     db.session.add(doc)
     db.session.commit()
 
-    # 2) filesystem
     folder = current_app.config["UPLOAD_FOLDER"]
     os.makedirs(folder, exist_ok=True)
 
@@ -30,11 +23,6 @@ def save_upload(file, name):
 
 
 def delete_document(doc_id: int):
-    """
-    Finds the file and DB record by doc_id and deletes both.
-    Returns None if successful, raises ValueError if not found.
-    """
-
     doc = Document.query.get(doc_id)
     if not doc:
         raise ValueError(f"Document {doc_id} not found")

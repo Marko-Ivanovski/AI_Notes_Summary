@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { uploadPdf, fetchChunks } from "../api/api";
+import { useNavigate } from "react-router-dom";
+import { buildChatPath } from "../api/api";
 
 export function UploadForm() {
   const [file, setFile] = useState<File | null>(null);
@@ -45,6 +47,47 @@ export function UploadForm() {
 
       const chunksResp = await fetchChunks(id);
       setChunkList(chunksResp.data);
+    } catch (err: any) {
+      setStatus(
+        err.response?.data?.error ||
+          err.response?.data?.message ||
+          "Upload failed. Check console for details."
+      );
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const navigate = useNavigate();
+
+  const onContinue = async () => {
+    if (!file) return;
+
+    if (docId !== null) {
+      navigate(buildChatPath(docId));
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setStatus("Uploading…");
+
+      const resp = await uploadPdf(file, name || undefined);
+      const id = resp.data.doc_id;
+      const rawChunks = resp.data.chunks;
+      const count = Array.isArray(rawChunks) ? rawChunks.length : rawChunks;
+
+      setDocId(id);
+      setChunkCount(count);
+
+      setStatus(`Upload successful — ${count} chunks created.`);
+
+      fetchChunks(id)
+        .then((r) => setChunkList(r.data))
+        .catch(() => {});
+
+      navigate(buildChatPath(id));
     } catch (err: any) {
       setStatus(
         err.response?.data?.error ||
@@ -130,6 +173,18 @@ export function UploadForm() {
                 {status}
               </p>
             )}
+            <button
+              type="button"
+              onClick={onContinue}
+              disabled={!file || loading}
+              className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-black px-6 py-3 text-white text-base font-semibold shadow hover:shadow-md focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!file ? "Attach a PDF to continue" : "Go to AI chat"}
+            >
+              Continue
+            </button>
+            <p className="text-xs text-emerald-800/70 text-center">
+              “Continue” unlocks after you attach a PDF. We’ll upload (if needed) and take you to the AI chat.
+            </p>
           </form>
 
           {/* RIGHT: Uploaded file + chunks */}

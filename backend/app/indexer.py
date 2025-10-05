@@ -35,10 +35,6 @@ def _create_whoosh_schema() -> Schema:
 
 
 def build_whoosh_index(chunks: List[Chunk]):
-    """
-    Build or update the Whoosh index from a list of Chunk ORM objects.
-    """
-
     _ensure_dir(WHOOSH_INDEX_DIR)
     if whoosh_index.exists_in(WHOOSH_INDEX_DIR):
         idx = whoosh_index.open_dir(WHOOSH_INDEX_DIR)
@@ -60,10 +56,6 @@ def build_whoosh_index(chunks: List[Chunk]):
 
 
 def rebuild_whoosh_index():
-    """
-    Load all chunks from the DB and rebuild the Whoosh index from scratch.
-    """
-
     logging.info("Rebuilding Whoosh index from DB...")
     chunks = db.session.query(Chunk).all()
 
@@ -76,19 +68,17 @@ def rebuild_whoosh_index():
 
 # FAISS (vector) Indexing
 def build_faiss_index(chunks: List[Chunk]) -> Tuple[faiss.Index, List[int]]:
-    """
-    Create a FAISS index from chunks with embeddings.
-    Returns the index and the list of chunk IDs corresponding to vector positions.
-    """
-
     valid = [(chunk.id, chunk.embedding) for chunk in chunks if chunk.embedding]
     if not valid:
         raise ValueError("No embeddings found for FAISS indexing.")
 
     ids, emb_blobs = zip(*valid)
     embeddings = np.stack([np.frombuffer(blob, dtype=np.float32) for blob in emb_blobs])
-    vector_dim = embeddings.shape[1]
 
+    norms = np.linalg.norm(embeddings, axis=1, keepdims=True) + 1e-12
+    embeddings = embeddings / norms
+
+    vector_dim = embeddings.shape[1]
     index = faiss.IndexFlatIP(vector_dim)
     index.add(embeddings)
 
@@ -96,27 +86,21 @@ def build_faiss_index(chunks: List[Chunk]) -> Tuple[faiss.Index, List[int]]:
     return index, list(ids)
 
 
-def persist_faiss_index(index: faiss.Index, id_map: List[int]):
-    """
-    Persist FAISS index file and ID map to disk.
-    """
-
+def persist_faiss_index(index: faiss.Index, id_list: List[int]):
     _ensure_dir(FAISS_INDEX_DIR)
     index_path = os.path.join(FAISS_INDEX_DIR, "faiss.index")
-    idmap_path  = os.path.join(FAISS_INDEX_DIR, "id_map.json")
+    idmap_path = os.path.join(FAISS_INDEX_DIR, "id_map.json")
 
     faiss.write_index(index, index_path)
-    with open(idmap_path, "w") as f:
-        json.dump(id_map, f)
 
-    logging.info(f"Persisted FAISS index to {index_path} and id_map to {idmap_path}.")
+    mapping = {str(i): int(cid) for i, cid in enumerate(id_list)}
+    with open(idmap_path, "w") as f:
+        json.dump(mapping, f)
+
+    logging.info(f"Persisted FAISS index to {index_path} and id_map (dict) to {idmap_path}.")
 
 
 def rebuild_faiss_index():
-    """
-    Rebuild the FAISS index from all chunk embeddings in the DB.
-    """
-
     logging.info("Rebuilding FAISS index from DB...")
     chunks = db.session.query(Chunk).all()
     index, id_map = build_faiss_index(chunks)
@@ -125,11 +109,6 @@ def rebuild_faiss_index():
 
 # Combining Indexes
 def build_indexes(reindex_all: bool = False):
-    """
-    Build or update both Whoosh and FAISS indexes.
-    If reindex_all=True, rebuild from scratch; otherwise, add only new chunks.
-    """
-
     logging.info(f"Starting index build (reindex_all={reindex_all}).")
 
     if reindex_all:
@@ -139,17 +118,35 @@ def build_indexes(reindex_all: bool = False):
         new_chunks = db.session.query(Chunk).filter(Chunk.embedding.isnot(None)).all()
         if new_chunks:
             build_whoosh_index(new_chunks)
-            index, id_map = build_faiss_index(new_chunks)
-            existing_index_path = os.path.join(FAISS_INDEX_DIR, "faiss.index")
-            if os.path.exists(existing_index_path):
-                existing_index = faiss.read_index(existing_index_path)
-                # Reorder embeddings to numpy array
-                ids, emb_blobs = zip(*[(c.id, c.embedding) for c in new_chunks])
-                embeddings = np.stack([np.frombuffer(b, dtype=np.float32) for b in emb_blobs])
-                existing_index.add(embeddings)
-                persist_faiss_index(existing_index, id_map)
-            else:
-                persist_faiss_index(index, id_map)
+
+            index_path = os.path.join(FAISS_INDEX_DIR, "faiss.index")
+            idmap_path = os.path.join(FAISS_INDEX_DIR, "id_map.json")
+
+            if new_chunks:
+                ids_new, emb_blobs = zip(*[(c.id, c.embedding) for c in new_chunks])
+                embs_new = np.stack([np.frombuffer(b, dtype=np.float32) for b in emb_blobs])
+                norms = np.linalg.norm(embs_new, axis=1, keepdims=True) + 1e-12
+                embs_new = embs_new / norms
+
+                if os.path.exists(index_path) and os.path.exists(idmap_path):
+                    idx = faiss.read_index(index_path)
+                    with open(idmap_path, "r") as f:
+                        existing_map = json.load(f)
+
+                    start_row = idx.ntotal
+                    idx.add(embs_new)
+
+                    for offset, cid in enumerate(ids_new):
+                        existing_map[str(start_row + offset)] = int(cid)
+
+                    # Rebuild ordered list for persistence
+                    total_rows = idx.ntotal
+                    ordered_ids = [existing_map[str(i)] for i in range(total_rows)]
+                    persist_faiss_index(idx, ordered_ids)
+                else:
+                    idx = faiss.IndexFlatIP(embs_new.shape[1])
+                    idx.add(embs_new)
+                    persist_faiss_index(idx, list(ids_new))
         else:
             logging.info("No new chunks to index.")
 

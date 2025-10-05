@@ -23,3 +23,16 @@ export function fetchChunks(docId: number) {
     `/chunks/${docId}`
   );
 }
+
+export function buildChatPath(docId: number | string) {
+  return `/chat?doc_id=${docId}`;
+}
+
+export function getPdfUrl(docId: number | string) {
+  const base = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+  return `${base}/upload/${docId}`;
+}
+
+export function askQuestion(payload: { doc_id: number | string; question: string }) {
+  return api.post<{ answer: string; citations?: Array<{ chunk_id: number; page?: number; preview?: string }> }>("/query", payload);
+}

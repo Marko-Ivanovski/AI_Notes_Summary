@@ -1,12 +1,14 @@
 # app/routes.py
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file, send_from_directory
 from .utils import save_upload, delete_document
 from .ingestion import extract_and_chunk
 from .indexer import build_indexes
-from .models import Chunk
+from .models import Chunk, Document
 from .retriever import retrieve
 from .generator import generate_answer
+
+import os
 
 api = Blueprint("api", __name__)
 
@@ -16,12 +18,6 @@ def error(msg: str, code: int = 400):
 
 @api.route("/upload", methods=["POST"])
 def upload():
-    """
-    1) Receive a PDF file + optional doc_name
-    2) Save file & create Document row
-    3) Return the new doc_id
-    """
-
     file = request.files.get("file")
     if not file or not file.filename.lower().endswith(".pdf"):
         return error("Missing or invalid PDF file.")
@@ -41,12 +37,6 @@ def upload():
 
 @api.route("/chunks/<int:doc_id>", methods=["GET"])
 def list_chunks(doc_id):
-    """
-    1) Return all chunks for a given doc_id
-    2) Order by page
-    3) Return chunk_id, page, and preview of text
-    """
-
     from .models import Chunk
     chunks = (
         Chunk.query
@@ -62,12 +52,6 @@ def list_chunks(doc_id):
 
 @api.route("/delete/<int:doc_id>", methods=["DELETE"])
 def delete_doc(doc_id):
-    """
-    1) Find the document by doc_id
-    2) Delete the file
-    3) Delete the DB record (chunks will be cascaded‐deleted)
-    """
-
     try:
         delete_document(doc_id)
         return jsonify({ "message": f"Document {doc_id} deleted." }), 200
@@ -82,19 +66,17 @@ def delete_doc(doc_id):
 def query():
     data = request.get_json(force=True)
     doc_id  = data.get("doc_id")
-    question = data.get("question")
+    question = (data.get("question") or "").strip()
     if not doc_id or not question:
         return error("Both doc_id and question are required.")
 
-    all_chunks = (
-        Chunk.query
-             .filter_by(document_id=doc_id)
-             .all()
-    )
+    all_chunks = Chunk.query.filter_by(document_id=doc_id).all()
     if not all_chunks:
         return error(f"No document #{doc_id} found.", 404)
 
-    ce = current_app.cross_encoder
+    # ce = current_app.cross_encoder
+    ce = None
+
     hits = retrieve(
         question,
         top_k_bm25=5,
@@ -102,15 +84,67 @@ def query():
         top_n=5,
         cross_encoder=ce
     )
-    hit_ids = [cid for cid, _ in hits]
+    hit_ids = [cid for cid, _ in hits] if hits else []
 
-    top_chunks = [Chunk.query.get(cid) for cid in hit_ids]
+    # Pull only chunks for THIS doc, preserving the hit order
+    if hit_ids:
+        doc_chunks = (
+            Chunk.query
+                 .filter(Chunk.id.in_(hit_ids), Chunk.document_id == doc_id)
+                 .all()
+        )
+        by_id = {c.id: c for c in doc_chunks}
+        top_chunks = [by_id[cid] for cid in hit_ids if cid in by_id]
+    else:
+        top_chunks = []
+
+    # Fallback: if retrieval produced nothing for this doc, use the first few chunks
+    if not top_chunks:
+        top_chunks = (
+            Chunk.query
+                 .filter_by(document_id=doc_id)
+                 .order_by(Chunk.page_number.asc(), Chunk.chunk_index.asc())
+                 .limit(5)
+                 .all()
+        )
 
     answer_text, cited_chunk_ids = generate_answer(question, top_chunks)
 
     return jsonify({
         "answer":      answer_text,
         "citations":   cited_chunk_ids,
-        "used_k":      len(hits),
+        "used_k":      len(hits or []),
         "context_count": len(top_chunks)
     }), 200
+
+
+@api.route("/upload/<int:doc_id>", methods=["GET"])
+def serve_pdf(doc_id: int):
+    doc = Document.query.get(doc_id)
+    if not doc:
+        return jsonify({"error": f"Document {doc_id} not found."}), 404
+
+    upload_dir = current_app.config.get("UPLOAD_FOLDER")
+    if not upload_dir or not os.path.isdir(upload_dir):
+        return jsonify({"error": "Upload directory is not configured or missing."}), 500
+
+    # Primary: use the filename we saved at upload time
+    candidates = []
+    if doc.filename:
+        candidates.append(doc.filename)
+
+    # Fallback: try "<doc_id>.pdf"
+    candidates.append(f"{doc_id}.pdf")
+
+    for fname in candidates:
+        file_path = os.path.join(upload_dir, fname)
+        if os.path.isfile(file_path):
+            return send_from_directory(
+                directory=upload_dir,
+                path=fname,
+                mimetype="application/pdf",
+                as_attachment=False,
+                max_age=3600,
+            )
+
+    return jsonify({"error": f"File for document {doc_id} not found on disk."}), 404

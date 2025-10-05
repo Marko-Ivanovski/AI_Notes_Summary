@@ -16,10 +16,8 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 EMBED_BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", 32))
 REDIS_TTL = int(os.getenv("REDIS_TTL", 0))
 
-# Initialize Redis client
 redis_client = redis.from_url(REDIS_URL)
 
-# Lazy model/tokenizer holders
 _tokenizer = None
 _model = None
 
@@ -33,11 +31,6 @@ def _load_model():
 
 
 def _encode_batch(texts: List[str]) -> np.ndarray:
-    """
-    Encode a list of texts into embedding vectors.
-    Returns a NumPy array of shape (len(texts), dim).
-    """
-
     tokenizer, model = _load_model()
     with torch.no_grad():
         encoded = tokenizer(
@@ -62,10 +55,6 @@ def _redis_key(chunk_id: str) -> str:
 
 
 def get_or_compute_embedding(chunk_id: str, text: str) -> np.ndarray:
-    """
-    Retrieve embedding from cache or compute + cache it.
-    """
-
     key = _redis_key(chunk_id)
     try:
         cached = redis_client.get(key)
@@ -90,12 +79,6 @@ def get_or_compute_embedding(chunk_id: str, text: str) -> np.ndarray:
 
 
 def encode_texts_for_chunks(chunks: List[dict]) -> None:
-    """
-    Given a list of chunk dicts with 'chunk_id' and 'text',
-    compute embeddings for each and attach under 'embedding'.
-    Modifies chunks in place.
-    """
-
     for i in range(0, len(chunks), EMBED_BATCH_SIZE):
         batch = chunks[i : i + EMBED_BATCH_SIZE]
         ids = [c['chunk_id'] for c in batch]
@@ -108,3 +91,7 @@ def encode_texts_for_chunks(chunks: List[dict]) -> None:
             logging.error(f"Batch encoding error: {e}")
             for chunk in batch:
                 chunk['embedding'] = get_or_compute_embedding(chunk['chunk_id'], chunk['text'])
+
+
+def get_query_embedding(text: str) -> np.ndarray:
+    return _encode_batch([text]).astype(np.float32)
